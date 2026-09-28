@@ -226,8 +226,12 @@ async function sendDM(page, business) {
   await page.fill('#email', EMAIL);
   await page.fill('#pass', PASSWORD);
   await page.click('[name="login"]');
-  await page.waitForNavigation({ timeout: 15000 });
   await sleep(3000);
+
+  // Pause for 2FA or any security checks
+  console.log('\n⏳ If Facebook is asking for 2FA or verification, complete it in the browser now.');
+  console.log('Press ENTER here once you are fully logged in...');
+  await new Promise(resolve => process.stdin.once('data', resolve));
 
   console.log('Logged in. Starting DMs...');
 
