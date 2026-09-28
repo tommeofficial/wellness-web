@@ -1,7 +1,10 @@
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
 
 const EMAIL = process.env.FB_EMAIL;
 const PASSWORD = process.env.FB_PASS;
+const SESSION_FILE = path.join(__dirname, 'fb_session.json');
 
 const MESSAGE_TEMPLATE = `Hey
 
@@ -214,24 +217,28 @@ async function sendDM(page, business) {
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
+  const sessionExists = fs.existsSync(SESSION_FILE);
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 },
+    storageState: sessionExists ? SESSION_FILE : undefined,
   });
 
   const page = await context.newPage();
 
-  console.log('Logging in...');
-  await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded' });
-  await page.fill('#email', EMAIL);
-  await page.fill('#pass', PASSWORD);
-  await page.click('[name="login"]');
-  await sleep(3000);
-
-  // Pause for 2FA or any security checks
-  console.log('\n⏳ If Facebook is asking for 2FA or verification, complete it in the browser now.');
-  console.log('Press ENTER here once you are fully logged in...');
-  await new Promise(resolve => process.stdin.once('data', resolve));
+  if (!sessionExists) {
+    console.log('No saved session found. Please log in manually in the browser.');
+    await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded' });
+    console.log('\n👉 Log into Facebook in the browser window (including any 2FA).');
+    console.log('Press ENTER here once you are fully logged in and see your Facebook home feed...');
+    await new Promise(resolve => process.stdin.once('data', resolve));
+    await context.storageState({ path: SESSION_FILE });
+    console.log('Session saved. Will reuse next time.');
+  } else {
+    console.log('Using saved session...');
+    await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
+    await sleep(2000);
+  }
 
   console.log('Logged in. Starting DMs...');
 
