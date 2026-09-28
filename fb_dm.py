@@ -169,13 +169,26 @@ for name, url in businesses:
             skipped.append((name, "no message button"))
             continue
 
+        original_window = driver.current_window_handle
         btns[0].click()
-        time.sleep(3)
+        time.sleep(4)
+
+        # Switch to new tab/window if one opened
+        if len(driver.window_handles) > 1:
+            for handle in driver.window_handles:
+                if handle != original_window:
+                    driver.switch_to.window(handle)
+                    break
+            time.sleep(3)
 
         boxes = driver.find_elements(By.XPATH, '//*[@role="textbox" and @contenteditable="true"]')
         if not boxes:
             print(f"SKIP (no input): {name}")
             skipped.append((name, "no chat input"))
+            # close extra tab if opened
+            if len(driver.window_handles) > 1:
+                driver.close()
+                driver.switch_to.window(original_window)
             continue
 
         box = boxes[-1]
@@ -186,6 +199,11 @@ for name, url in businesses:
             box.send_keys(Keys.SHIFT + Keys.RETURN)
         box.send_keys(Keys.RETURN)
         time.sleep(2)
+
+        # Close messenger tab and go back
+        if len(driver.window_handles) > 1:
+            driver.close()
+            driver.switch_to.window(original_window)
         print(f"SENT: {name}")
         sent.append(name)
         time.sleep(random.uniform(3, 6))
