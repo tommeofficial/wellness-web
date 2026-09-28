@@ -235,9 +235,13 @@ async function sendDM(page, business) {
 
   console.log('Logged in. Starting DMs...');
 
-  for (const business of businesses) {
-    await sendDM(page, business);
-    await sleep(3000 + Math.random() * 2000);
+  try {
+    for (const business of businesses) {
+      await sendDM(page, business);
+      await sleep(3000 + Math.random() * 2000);
+    }
+  } catch (e) {
+    console.error('Fatal error during sending:', e.message);
   }
 
   console.log('\n--- RESULTS ---');
@@ -248,5 +252,11 @@ async function sendDM(page, business) {
   console.log(`Skipped/Failed: ${skipped.length}`);
   skipped.forEach(r => console.log(`  ✗ ${r.name} — ${r.status}`));
 
+  console.log('\nDone. Press ENTER to close browser...');
+  await new Promise(resolve => process.stdin.once('data', resolve));
+
   await browser.close();
-})();
+})().catch(e => {
+  console.error('Startup error:', e.message);
+  process.exit(1);
+});
